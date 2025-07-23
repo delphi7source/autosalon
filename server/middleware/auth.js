@@ -73,3 +73,4 @@ export const optionalAuth = async (req, res, next) => {
     // Игнорируем ошибки для опционального middleware
     next();
   }
+}
