@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
+import { apiClient, Car } from '@/lib/api';
+import { toast } from '@/hooks/use-toast';
 import Icon from '@/components/ui/icon';
 
 const Catalog = () => {
@@ -14,108 +16,39 @@ const Catalog = () => {
   const [selectedType, setSelectedType] = useState('all');
   const [priceRange, setPriceRange] = useState([0, 10000000]);
   const [sortBy, setSortBy] = useState('price-asc');
+  const [cars, setCars] = useState<Car[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const cars = [
-    {
-      id: 1,
-      name: 'BMW 3 Series',
-      price: 2890000,
-      year: 2024,
-      fuel: 'Бензин',
-      transmission: 'Автомат',
-      mileage: '0',
-      type: 'Седан',
-      brand: 'BMW',
-      image: '/img/35658ce2-0e0f-41a4-a417-c35990cabc29.jpg',
-      features: ['Кожаный салон', 'Подогрев сидений', 'Навигация', 'Климат-контроль'],
-      isNew: true,
-      isHit: false
-    },
-    {
-      id: 2,
-      name: 'Audi Q5',
-      price: 3450000,
-      year: 2024,
-      fuel: 'Бензин',
-      transmission: 'Автомат',
-      mileage: '0',
-      type: 'Кроссовер',
-      brand: 'Audi',
-      image: '/img/b6e0d970-0bdc-442d-af99-f0a51ff0863e.jpg',
-      features: ['Полный привод', 'Панорамная крыша', 'LED фары', 'Virtual Cockpit'],
-      isNew: true,
-      isHit: true
-    },
-    {
-      id: 3,
-      name: 'Mercedes C-Class Coupe',
-      price: 4120000,
-      year: 2024,
-      fuel: 'Бензин',
-      transmission: 'Автомат',
-      mileage: '0',
-      type: 'Купе',
-      brand: 'Mercedes',
-      image: '/img/8da9e761-2e1b-453f-9c89-1afd4df236ee.jpg',
-      features: ['AMG пакет', 'Премиум звук', 'Автопилот', 'Панорамная крыша'],
-      isNew: true,
-      isHit: false
-    },
-    {
-      id: 4,
-      name: 'BMW X5',
-      price: 5200000,
-      year: 2023,
-      fuel: 'Бензин',
-      transmission: 'Автомат',
-      mileage: '15000',
-      type: 'Кроссовер',
-      brand: 'BMW',
-      image: '/img/35658ce2-0e0f-41a4-a417-c35990cabc29.jpg',
-      features: ['xDrive', 'Harman Kardon', 'Головной дисплей', 'Массаж сидений'],
-      isNew: false,
-      isHit: false
-    },
-    {
-      id: 5,
-      name: 'Audi A4',
-      price: 2650000,
-      year: 2023,
-      fuel: 'Бензин',
-      transmission: 'Автомат',
-      mileage: '8500',
-      type: 'Седан',
-      brand: 'Audi',
-      image: '/img/b6e0d970-0bdc-442d-af99-f0a51ff0863e.jpg',
-      features: ['quattro', 'Matrix LED', 'Bang & Olufsen', 'Адаптивная подвеска'],
-      isNew: false,
-      isHit: true
-    },
-    {
-      id: 6,
-      name: 'Mercedes E-Class',
-      price: 3890000,
-      year: 2023,
-      fuel: 'Гибрид',
-      transmission: 'Автомат',
-      mileage: '12000',
-      type: 'Седан',
-      brand: 'Mercedes',
-      image: '/img/8da9e761-2e1b-453f-9c89-1afd4df236ee.jpg',
-      features: ['MBUX', 'Air Body Control', 'Burmester', 'Multibeam LED'],
-      isNew: false,
-      isHit: false
-    }
-  ];
+  useEffect(() => {
+    const fetchCars = async () => {
+      try {
+        const response = await apiClient.getCars();
+        if (response.success && response.data) {
+          setCars(response.data);
+        }
+      } catch (error) {
+        toast({
+          title: 'Ошибка',
+          description: 'Не удалось загрузить автомобили',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  const brands = ['BMW', 'Audi', 'Mercedes'];
-  const types = ['Седан', 'Кроссовер', 'Купе'];
+    fetchCars();
+  }, []);
+
+  // Получаем уникальные марки и типы из загруженных автомобилей
+  const brands = [...new Set(cars.map(car => car.brand))];
+  const types = [...new Set(cars.map(car => car.bodyType))];
 
   const filteredCars = cars.filter(car => {
     return (
-      car.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+      `${car.brand} ${car.model}`.toLowerCase().includes(searchTerm.toLowerCase()) &&
       (selectedBrand === 'all' || car.brand === selectedBrand) &&
-      (selectedType === 'all' || car.type === selectedType) &&
+      (selectedType === 'all' || car.bodyType === selectedType) &&
       car.price >= priceRange[0] && car.price <= priceRange[1]
     );
   });
@@ -129,7 +62,7 @@ const Catalog = () => {
       case 'year-desc':
         return b.year - a.year;
       case 'name-asc':
-        return a.name.localeCompare(b.name);
+        return `${a.brand} ${a.model}`.localeCompare(`${b.brand} ${b.model}`);
       default:
         return 0;
     }
@@ -269,12 +202,30 @@ const Catalog = () => {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {sortedCars.map((car) => (
-                  <Card key={car.id} className="group hover:shadow-xl transition-all duration-300 overflow-hidden">
+                {isLoading ? (
+                  // Loading skeleton
+                  Array.from({ length: 6 }).map((_, index) => (
+                    <Card key={index} className="overflow-hidden">
+                      <div className="w-full h-48 bg-gray-200 animate-pulse"></div>
+                      <CardHeader className="pb-2">
+                        <div className="h-6 bg-gray-200 animate-pulse rounded mb-2"></div>
+                        <div className="h-8 bg-gray-200 animate-pulse rounded"></div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          <div className="h-4 bg-gray-200 animate-pulse rounded"></div>
+                          <div className="h-4 bg-gray-200 animate-pulse rounded"></div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                ) : (
+                  sortedCars.map((car) => (
+                    <Card key={car._id} className="group hover:shadow-xl transition-all duration-300 overflow-hidden">
                     <div className="relative overflow-hidden">
                       <img 
-                        src={car.image} 
-                        alt={car.name}
+                        src={car.images[0] || '/placeholder.svg'} 
+                        alt={`${car.brand} ${car.model}`}
                         className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                       <div className="absolute top-4 right-4 flex flex-col gap-2">
@@ -283,7 +234,7 @@ const Catalog = () => {
                       </div>
                     </div>
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-lg text-secondary">{car.name}</CardTitle>
+                      <CardTitle className="text-lg text-secondary">{car.brand} {car.model}</CardTitle>
                       <div className="text-2xl font-bold text-primary">{formatPrice(car.price)} ₽</div>
                     </CardHeader>
                     <CardContent>
@@ -294,7 +245,7 @@ const Catalog = () => {
                         </div>
                         <div className="flex items-center">
                           <Icon name="Zap" size={14} className="mr-1" />
-                          {car.fuel}
+                          {car.fuelType}
                         </div>
                         <div className="flex items-center">
                           <Icon name="Settings" size={14} className="mr-1" />
@@ -302,7 +253,7 @@ const Catalog = () => {
                         </div>
                         <div className="flex items-center">
                           <Icon name="Activity" size={14} className="mr-1" />
-                          {car.mileage} км
+                          {car.mileage.toLocaleString('ru-RU')} км
                         </div>
                       </div>
                       
@@ -320,7 +271,7 @@ const Catalog = () => {
                       </div>
 
                       <div className="flex gap-2">
-                        <Link to={`/car/${car.id}`} className="flex-1">
+                        <Link to={`/car/${car._id}`} className="flex-1">
                           <Button className="w-full bg-primary hover:bg-primary/90">
                             Подробнее
                           </Button>
@@ -331,7 +282,8 @@ const Catalog = () => {
                       </div>
                     </CardContent>
                   </Card>
-                ))}
+                  ))
+                )}
               </div>
             )}
 

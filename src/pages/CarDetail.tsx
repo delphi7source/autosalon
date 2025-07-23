@@ -1,5 +1,5 @@
-import { useParams, Link } from 'react-router-dom';
-import { useState } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -7,54 +7,50 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { apiClient, Car } from '@/lib/api';
+import { toast } from '@/hooks/use-toast';
 import Icon from '@/components/ui/icon';
 
 const CarDetail = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [selectedImage, setSelectedImage] = useState(0);
+  const [car, setCar] = useState<Car | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // В реальном приложении данные загружались бы по ID
-  const car = {
-    id: parseInt(id || '1'),
-    name: 'BMW 3 Series',
-    price: 2890000,
-    year: 2024,
-    fuel: 'Бензин',
-    transmission: 'Автомат',
-    mileage: '0',
-    type: 'Седан',
-    brand: 'BMW',
-    images: [
-      '/img/35658ce2-0e0f-41a4-a417-c35990cabc29.jpg',
-      '/img/b6e0d970-0bdc-442d-af99-f0a51ff0863e.jpg',
-      '/img/8da9e761-2e1b-453f-9c89-1afd4df236ee.jpg'
-    ],
-    features: ['Кожаный салон', 'Подогрев сидений', 'Навигация', 'Климат-контроль', 'Bluetooth', 'USB', 'Круиз-контроль', 'Парктроник'],
-    engine: '2.0L турбо',
-    power: '184 л.с.',
-    acceleration: '7.1 сек',
-    consumption: '6.8 л/100км',
-    drive: 'Задний привод',
-    color: 'Серебристый металлик',
-    vin: 'WBAVA31070NL12345',
-    description: 'Элегантный и динамичный BMW 3 Series представляет собой идеальное сочетание спортивности и комфорта. Этот седан оснащен передовыми технологиями и обеспечивает превосходное качество вождения. Автомобиль находится в идеальном состоянии и готов к передаче новому владельцу.',
-    specs: {
-      dimensions: '4709×1827×1442 мм',
-      trunk: '480 л',
-      weight: '1570 кг',
-      fuelTank: '59 л',
-      maxSpeed: '235 км/ч',
-      doors: '4',
-      seats: '5',
-      wheelbase: '2851 мм'
-    },
-    equipment: {
-      safety: ['ABS', 'ESP', 'Подушки безопасности', 'Система контроля давления в шинах', 'Система помощи при экстренном торможении'],
-      comfort: ['Кондиционер', 'Подогрев сидений', 'Электростеклоподъемники', 'Центральный замок', 'Круиз-контроль'],
-      multimedia: ['Мультимедийная система', 'Bluetooth', 'USB', 'AUX', 'Навигация'],
-      exterior: ['LED фары', 'Легкосплавные диски', 'Тонированные стекла', 'Электрозеркала']
-    }
-  };
+  useEffect(() => {
+    const fetchCar = async () => {
+      if (!id) {
+        navigate('/catalog');
+        return;
+      }
+
+      try {
+        const response = await apiClient.getCarById(id);
+        if (response.success && response.data) {
+          setCar(response.data);
+        } else {
+          toast({
+            title: 'Ошибка',
+            description: 'Автомобиль не найден',
+            variant: 'destructive',
+          });
+          navigate('/catalog');
+        }
+      } catch (error) {
+        toast({
+          title: 'Ошибка',
+          description: 'Не удалось загрузить данные автомобиля',
+          variant: 'destructive',
+        });
+        navigate('/catalog');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCar();
+  }, [id, navigate]);
 
   const formatPrice = (price: number) => {
     return price.toLocaleString('ru-RU');
@@ -120,6 +116,33 @@ const CarDetail = () => {
     );
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center h-64">
+            <Icon name="Loader2" size={32} className="animate-spin" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!car) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold mb-4">Автомобиль не найден</h1>
+            <Link to="/catalog">
+              <Button>Вернуться к каталогу</Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Breadcrumbs */}
@@ -130,7 +153,7 @@ const CarDetail = () => {
             <Icon name="ChevronRight" size={14} />
             <Link to="/catalog" className="hover:text-primary">Каталог</Link>
             <Icon name="ChevronRight" size={14} />
-            <span className="text-gray-900">{car.name}</span>
+            <span className="text-gray-900">{car.brand} {car.model}</span>
           </nav>
         </div>
       </div>
@@ -144,12 +167,15 @@ const CarDetail = () => {
               <div className="relative mb-4">
                 <img 
                   src={car.images[selectedImage]} 
-                  alt={car.name}
+                  alt={`${car.brand} ${car.model}`}
                   className="w-full h-96 object-cover rounded-lg"
                 />
                 <div className="absolute top-4 left-4 flex flex-col gap-2">
-                  <Badge className="bg-green-600">Новый</Badge>
-                  <Badge className="bg-primary">В наличии</Badge>
+                  {car.isNew && <Badge className="bg-green-600">Новый</Badge>}
+                  {car.isHit && <Badge className="bg-primary">Хит продаж</Badge>}
+                  <Badge className={`${car.status === 'available' ? 'bg-green-600' : car.status === 'sold' ? 'bg-red-600' : 'bg-yellow-600'}`}>
+                    {car.status === 'available' ? 'В наличии' : car.status === 'sold' ? 'Продан' : 'Зарезервирован'}
+                  </Badge>
                 </div>
               </div>
               <div className="flex gap-2 overflow-x-auto">
@@ -161,7 +187,7 @@ const CarDetail = () => {
                       selectedImage === index ? 'border-primary' : 'border-gray-200'
                     }`}
                   >
-                    <img src={image} alt={`${car.name} ${index + 1}`} className="w-full h-full object-cover" />
+                    <img src={image} alt={`${car.brand} ${car.model} ${index + 1}`} className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>
@@ -185,22 +211,22 @@ const CarDetail = () => {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="bg-gray-50 p-4 rounded-lg text-center">
                     <Icon name="Zap" size={24} className="text-primary mx-auto mb-2" />
-                    <div className="font-semibold">{car.engine}</div>
-                    <div className="text-sm text-gray-600">{car.power}</div>
+                    <div className="font-semibold">{car.engineVolume}L</div>
+                    <div className="text-sm text-gray-600">{car.power} л.с.</div>
                   </div>
                   <div className="bg-gray-50 p-4 rounded-lg text-center">
                     <Icon name="Activity" size={24} className="text-primary mx-auto mb-2" />
                     <div className="font-semibold">0-100 км/ч</div>
-                    <div className="text-sm text-gray-600">{car.acceleration}</div>
+                    <div className="text-sm text-gray-600">7.1 сек</div>
                   </div>
                   <div className="bg-gray-50 p-4 rounded-lg text-center">
                     <Icon name="Gauge" size={24} className="text-primary mx-auto mb-2" />
                     <div className="font-semibold">Расход</div>
-                    <div className="text-sm text-gray-600">{car.consumption}</div>
+                    <div className="text-sm text-gray-600">6.8 л/100км</div>
                   </div>
                   <div className="bg-gray-50 p-4 rounded-lg text-center">
                     <Icon name="Settings" size={24} className="text-primary mx-auto mb-2" />
-                    <div className="font-semibold">{car.drive}</div>
+                    <div className="font-semibold">Привод</div>
                     <div className="text-sm text-gray-600">{car.transmission}</div>
                   </div>
                 </div>
@@ -213,15 +239,15 @@ const CarDetail = () => {
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-gray-600">Двигатель:</span>
-                        <span>{car.engine}</span>
+                        <span>{car.engineVolume}L</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Мощность:</span>
-                        <span>{car.power}</span>
+                        <span>{car.power} л.с.</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Привод:</span>
-                        <span>{car.drive}</span>
+                        <span>Задний</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">КПП:</span>
@@ -233,7 +259,7 @@ const CarDetail = () => {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Разгон 0-100:</span>
-                        <span>{car.acceleration}</span>
+                        <span>7.1 сек</span>
                       </div>
                     </div>
                   </div>
@@ -243,31 +269,31 @@ const CarDetail = () => {
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-gray-600">Размеры:</span>
-                        <span>{car.specs.dimensions}</span>
+                        <span>4709×1827×1442 мм</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Колесная база:</span>
-                        <span>{car.specs.wheelbase}</span>
+                        <span>2851 мм</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Багажник:</span>
-                        <span>{car.specs.trunk}</span>
+                        <span>480 л</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Масса:</span>
-                        <span>{car.specs.weight}</span>
+                        <span>1570 кг</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Топливный бак:</span>
-                        <span>{car.specs.fuelTank}</span>
+                        <span>59 л</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Количество дверей:</span>
-                        <span>{car.specs.doors}</span>
+                        <span>4</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Количество мест:</span>
-                        <span>{car.specs.seats}</span>
+                        <span>5</span>
                       </div>
                     </div>
                   </div>
@@ -276,24 +302,17 @@ const CarDetail = () => {
               
               <TabsContent value="equipment" className="space-y-6 mt-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {Object.entries(car.equipment).map(([category, items]) => (
-                    <div key={category}>
-                      <h4 className="font-semibold mb-3 text-secondary capitalize">
-                        {category === 'safety' && 'Безопасность'}
-                        {category === 'comfort' && 'Комфорт'}
-                        {category === 'multimedia' && 'Мультимедиа'}
-                        {category === 'exterior' && 'Экстерьер'}
-                      </h4>
-                      <div className="space-y-2">
-                        {items.map((item, index) => (
-                          <div key={index} className="flex items-center space-x-2">
-                            <Icon name="Check" size={16} className="text-green-600" />
-                            <span className="text-sm">{item}</span>
-                          </div>
-                        ))}
-                      </div>
+                  <div>
+                    <h4 className="font-semibold mb-3 text-secondary">Особенности</h4>
+                    <div className="space-y-2">
+                      {car.features.map((feature, index) => (
+                        <div key={index} className="flex items-center space-x-2">
+                          <Icon name="Check" size={16} className="text-green-600" />
+                          <span className="text-sm">{feature}</span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  </div>
                 </div>
               </TabsContent>
               
@@ -315,7 +334,7 @@ const CarDetail = () => {
                     </div>
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <h5 className="font-medium mb-2">Пробег</h5>
-                      <p className="text-sm text-gray-600">{car.mileage} км</p>
+                      <p className="text-sm text-gray-600">{car.mileage.toLocaleString('ru-RU')} км</p>
                     </div>
                   </div>
                   
@@ -352,7 +371,7 @@ const CarDetail = () => {
               {/* Price and Basic Info */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-2xl text-secondary">{car.name}</CardTitle>
+                  <CardTitle className="text-2xl text-secondary">{car.brand} {car.model}</CardTitle>
                   <div className="text-3xl font-bold text-primary">{formatPrice(car.price)} ₽</div>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -363,11 +382,11 @@ const CarDetail = () => {
                     </div>
                     <div>
                       <span className="text-gray-600">Пробег:</span>
-                      <div className="font-medium">{car.mileage} км</div>
+                      <div className="font-medium">{car.mileage.toLocaleString('ru-RU')} км</div>
                     </div>
                     <div>
                       <span className="text-gray-600">Топливо:</span>
-                      <div className="font-medium">{car.fuel}</div>
+                      <div className="font-medium">{car.fuelType}</div>
                     </div>
                     <div>
                       <span className="text-gray-600">КПП:</span>
