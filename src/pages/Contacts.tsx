@@ -113,13 +113,31 @@ const Contacts = () => {
 
   const handleContactSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Contact form:', contactForm);
+    toast({
+      title: 'Сообщение отправлено',
+      description: 'Мы ответим вам в ближайшее время',
+    });
+    setContactForm({
+      name: '',
+      phone: '',
+      email: '',
+      subject: '',
+      message: ''
+    });
     // Здесь была бы отправка формы
   };
 
   const handleCallbackSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Callback form:', callbackForm);
+    toast({
+      title: 'Заявка отправлена',
+      description: 'Мы перезвоним вам в указанное время',
+    });
+    setCallbackForm({
+      name: '',
+      phone: '',
+      time: ''
+    });
     // Здесь была бы отправка формы
   };
 

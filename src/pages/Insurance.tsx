@@ -98,12 +98,11 @@ const Insurance = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Insurance application:', {
-      ...formData,
-      type: insuranceType,
-      carValue: carValue[0],
-      options: selectedOptions
+    toast({
+      title: 'Заявка отправлена',
+      description: 'Мы подготовим для вас лучшие предложения по страхованию',
     });
+    // Здесь была бы отправка формы на сервер
   };
 
   const formatPrice = (price: number) => {

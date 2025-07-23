@@ -92,12 +92,20 @@ const TradeIn = () => {
 
   const handleEvaluationSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Evaluation form:', evaluationForm);
+    toast({
+      title: 'Заявка отправлена',
+      description: 'Мы свяжемся с вами для назначения времени осмотра',
+    });
+    // Здесь была бы отправка формы на сервер
   };
 
   const handleContactSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Contact form:', contactForm);
+    toast({
+      title: 'Заявка отправлена',
+      description: 'Мы свяжемся с вами в ближайшее время',
+    });
+    // Здесь была бы отправка формы на сервер
   };
 
   const estimateValue = () => {

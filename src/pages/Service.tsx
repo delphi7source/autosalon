@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,10 +7,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { apiClient, Service as ServiceType } from '@/lib/api';
+import { toast } from '@/hooks/use-toast';
 import Icon from '@/components/ui/icon';
 
 const Service = () => {
   const [selectedService, setSelectedService] = useState('');
+  const [services, setServices] = useState<ServiceType[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [bookingForm, setBookingForm] = useState({
     name: '',
     phone: '',
@@ -22,44 +26,26 @@ const Service = () => {
     description: ''
   });
 
-  const services = [
-    {
-      category: 'Техническое обслуживание',
-      items: [
-        { name: 'ТО-1 (15 000 км)', price: 'от 8 500', duration: '2-3 часа', description: 'Базовое техническое обслуживание' },
-        { name: 'ТО-2 (30 000 км)', price: 'от 12 500', duration: '3-4 часа', description: 'Расширенное техническое обслуживание' },
-        { name: 'ТО-3 (45 000 км)', price: 'от 15 500', duration: '4-5 часов', description: 'Полное техническое обслуживание' },
-        { name: 'Предпродажная подготовка', price: 'от 25 000', duration: '1-2 дня', description: 'Комплексная подготовка к продаже' }
-      ]
-    },
-    {
-      category: 'Диагностика',
-      items: [
-        { name: 'Компьютерная диагностика', price: 'от 2 500', duration: '1 час', description: 'Полная диагностика всех систем' },
-        { name: 'Диагностика двигателя', price: 'от 3 500', duration: '1-2 часа', description: 'Углубленная диагностика двигателя' },
-        { name: 'Диагностика подвески', price: 'от 2 000', duration: '1 час', description: 'Проверка состояния подвески' },
-        { name: 'Диагностика тормозной системы', price: 'от 1 500', duration: '30 мин', description: 'Проверка тормозов и ABS' }
-      ]
-    },
-    {
-      category: 'Ремонт двигателя',
-      items: [
-        { name: 'Замена масла и фильтров', price: 'от 3 500', duration: '1 час', description: 'Замена моторного масла и фильтров' },
-        { name: 'Замена свечей зажигания', price: 'от 2 500', duration: '1 час', description: 'Замена свечей и катушек зажигания' },
-        { name: 'Ремонт системы охлаждения', price: 'от 8 500', duration: '2-4 часа', description: 'Ремонт радиатора, помпы, термостата' },
-        { name: 'Капитальный ремонт двигателя', price: 'от 150 000', duration: '5-10 дней', description: 'Полный ремонт двигателя' }
-      ]
-    },
-    {
-      category: 'Кузовной ремонт',
-      items: [
-        { name: 'Покраска элемента', price: 'от 15 000', duration: '2-3 дня', description: 'Покраска одного элемента кузова' },
-        { name: 'Рихтовка и покраска', price: 'от 25 000', duration: '3-5 дней', description: 'Восстановление геометрии и покраска' },
-        { name: 'Полировка кузова', price: 'от 8 500', duration: '1 день', description: 'Восстановительная полировка' },
-        { name: 'Антикоррозийная обработка', price: 'от 12 000', duration: '1 день', description: 'Защита от коррозии' }
-      ]
-    }
-  ];
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const response = await apiClient.getServices();
+        if (response.success && response.data) {
+          setServices(response.data.filter(service => service.isActive));
+        }
+      } catch (error) {
+        toast({
+          title: 'Ошибка',
+          description: 'Не удалось загрузить услуги',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchServices();
+  }, []);
 
   const specialists = [
     {
@@ -90,8 +76,21 @@ const Service = () => {
 
   const handleBookingSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Service booking:', { ...bookingForm, service: selectedService });
+    toast({
+      title: 'Заявка отправлена',
+      description: 'Мы свяжемся с вами в ближайшее время',
+    });
+    // Здесь была бы отправка формы на сервер
   };
+
+  // Группируем услуги по категориям
+  const servicesByCategory = services.reduce((acc, service) => {
+    if (!acc[service.category]) {
+      acc[service.category] = [];
+    }
+    acc[service.category].push(service);
+    return acc;
+  }, {} as Record<string, ServiceType[]>);
 
   const BookingForm = () => (
     <form onSubmit={handleBookingSubmit} className="space-y-4">
@@ -205,48 +204,54 @@ const Service = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2">
                 <div className="space-y-8">
-                  {services.map((category, categoryIndex) => (
-                    <div key={categoryIndex}>
-                      <h2 className="text-2xl font-bold text-secondary mb-6">{category.category}</h2>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {category.items.map((service, serviceIndex) => (
-                          <Card key={serviceIndex} className="hover:shadow-lg transition-shadow">
-                            <CardHeader className="pb-3">
-                              <div className="flex justify-between items-start">
-                                <CardTitle className="text-lg">{service.name}</CardTitle>
-                                <Badge variant="outline">{service.price} ₽</Badge>
-                              </div>
-                            </CardHeader>
-                            <CardContent>
-                              <p className="text-gray-600 text-sm mb-3">{service.description}</p>
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center text-sm text-gray-500">
-                                  <Icon name="Clock" size={14} className="mr-1" />
-                                  {service.duration}
-                                </div>
-                                <Dialog>
-                                  <DialogTrigger asChild>
-                                    <Button 
-                                      size="sm" 
-                                      onClick={() => setSelectedService(service.name)}
-                                    >
-                                      Записаться
-                                    </Button>
-                                  </DialogTrigger>
-                                  <DialogContent>
-                                    <DialogHeader>
-                                      <DialogTitle>Запись на сервис: {service.name}</DialogTitle>
-                                    </DialogHeader>
-                                    <BookingForm />
-                                  </DialogContent>
-                                </Dialog>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
+                  {isLoading ? (
+                    <div className="flex items-center justify-center h-64">
+                      <Icon name="Loader2" size={32} className="animate-spin" />
                     </div>
-                  ))}
+                  ) : (
+                    Object.entries(servicesByCategory).map(([category, categoryServices]) => (
+                      <div key={category}>
+                        <h2 className="text-2xl font-bold text-secondary mb-6">{category}</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {categoryServices.map((service) => (
+                            <Card key={service._id} className="hover:shadow-lg transition-shadow">
+                              <CardHeader className="pb-3">
+                                <div className="flex justify-between items-start">
+                                  <CardTitle className="text-lg">{service.name}</CardTitle>
+                                  <Badge variant="outline">от {service.price.toLocaleString('ru-RU')} ₽</Badge>
+                                </div>
+                              </CardHeader>
+                              <CardContent>
+                                <p className="text-gray-600 text-sm mb-3">{service.description}</p>
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center text-sm text-gray-500">
+                                    <Icon name="Clock" size={14} className="mr-1" />
+                                    {service.duration}
+                                  </div>
+                                  <Dialog>
+                                    <DialogTrigger asChild>
+                                      <Button 
+                                        size="sm" 
+                                        onClick={() => setSelectedService(service.name)}
+                                      >
+                                        Записаться
+                                      </Button>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                      <DialogHeader>
+                                        <DialogTitle>Запись на сервис: {service.name}</DialogTitle>
+                                      </DialogHeader>
+                                      <BookingForm />
+                                    </DialogContent>
+                                  </Dialog>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
 

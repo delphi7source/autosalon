@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { toast } from '@/hooks/use-toast';
 import Icon from '@/components/ui/icon';
 
 const Financing = () => {
@@ -285,7 +286,10 @@ const Financing = () => {
 
                     <Button className="w-full bg-primary hover:bg-primary/90" size="lg">
                       <Icon name="FileText" size={16} className="mr-2" />
-                      Подать заявку на кредит
+                      <span onClick={() => toast({
+                        title: 'Заявка отправлена',
+                        description: 'Мы свяжемся с вами для оформления кредита',
+                      })}>Подать заявку на кредит</span>
                     </Button>
                   </CardContent>
                 </Card>

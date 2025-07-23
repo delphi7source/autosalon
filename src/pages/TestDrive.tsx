@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,12 +9,16 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
+import { apiClient, Car } from '@/lib/api';
+import { toast } from '@/hooks/use-toast';
 import Icon from '@/components/ui/icon';
 
 const TestDrive = () => {
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState('');
   const [selectedCar, setSelectedCar] = useState('');
+  const [availableCars, setAvailableCars] = useState<Car[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -23,14 +27,27 @@ const TestDrive = () => {
     comments: ''
   });
 
-  const availableCars = [
-    { id: 1, name: 'BMW 3 Series', image: '/img/35658ce2-0e0f-41a4-a417-c35990cabc29.jpg', available: true },
-    { id: 2, name: 'Audi Q5', image: '/img/b6e0d970-0bdc-442d-af99-f0a51ff0863e.jpg', available: true },
-    { id: 3, name: 'Mercedes C-Class Coupe', image: '/img/8da9e761-2e1b-453f-9c89-1afd4df236ee.jpg', available: false },
-    { id: 4, name: 'BMW X5', image: '/img/35658ce2-0e0f-41a4-a417-c35990cabc29.jpg', available: true },
-    { id: 5, name: 'Audi A4', image: '/img/b6e0d970-0bdc-442d-af99-f0a51ff0863e.jpg', available: true },
-    { id: 6, name: 'Mercedes E-Class', image: '/img/8da9e761-2e1b-453f-9c89-1afd4df236ee.jpg', available: true }
-  ];
+  useEffect(() => {
+    const fetchCars = async () => {
+      try {
+        const response = await apiClient.getCars();
+        if (response.success && response.data) {
+          // Показываем только доступные автомобили
+          setAvailableCars(response.data.filter(car => car.status === 'available'));
+        }
+      } catch (error) {
+        toast({
+          title: 'Ошибка',
+          description: 'Не удалось загрузить автомобили',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCars();
+  }, []);
 
   const timeSlots = [
     '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'
@@ -38,13 +55,11 @@ const TestDrive = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Здесь была бы отправка формы
-    console.log('Test drive booking:', {
-      ...formData,
-      date: selectedDate,
-      time: selectedTime,
-      car: selectedCar
+    toast({
+      title: 'Заявка отправлена',
+      description: 'Мы свяжемся с вами для подтверждения записи',
     });
+    // Здесь была бы отправка формы на сервер
   };
 
   const isFormValid = () => {
@@ -77,31 +92,36 @@ const TestDrive = () => {
                   {/* Car Selection */}
                   <div>
                     <label className="text-sm font-medium mb-3 block">Выберите автомобиль</label>
+                    {isLoading ? (
+                      <div className="flex items-center justify-center h-32">
+                        <Icon name="Loader2" size={24} className="animate-spin" />
+                      </div>
+                    ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {availableCars.map((car) => (
                         <div
-                          key={car.id}
+                          key={car._id}
                           className={`relative border-2 rounded-lg overflow-hidden cursor-pointer transition-all ${
-                            selectedCar === car.name
+                            selectedCar === `${car.brand} ${car.model}`
                               ? 'border-primary ring-2 ring-primary/20'
-                              : car.available
+                              : car.status === 'available'
                               ? 'border-gray-200 hover:border-gray-300'
                               : 'border-gray-100 opacity-50 cursor-not-allowed'
                           }`}
-                          onClick={() => car.available && setSelectedCar(car.name)}
+                          onClick={() => car.status === 'available' && setSelectedCar(`${car.brand} ${car.model}`)}
                         >
-                          <img src={car.image} alt={car.name} className="w-full h-32 object-cover" />
+                          <img src={car.images[0] || '/placeholder.svg'} alt={`${car.brand} ${car.model}`} className="w-full h-32 object-cover" />
                           <div className="p-3">
-                            <h4 className="font-medium">{car.name}</h4>
+                            <h4 className="font-medium">{car.brand} {car.model}</h4>
                             <div className="mt-2">
-                              {car.available ? (
+                              {car.status === 'available' ? (
                                 <Badge className="bg-green-600">Доступен</Badge>
                               ) : (
                                 <Badge variant="secondary">Недоступен</Badge>
                               )}
                             </div>
                           </div>
-                          {selectedCar === car.name && (
+                          {selectedCar === `${car.brand} ${car.model}` && (
                             <div className="absolute top-2 right-2">
                               <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center">
                                 <Icon name="Check" size={14} className="text-white" />
@@ -111,6 +131,7 @@ const TestDrive = () => {
                         </div>
                       ))}
                     </div>
+                    )}
                   </div>
 
                   {/* Date and Time */}
