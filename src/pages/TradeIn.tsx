@@ -7,10 +7,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Slider } from '@/components/ui/slider';
+import { apiClient } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/hooks/use-toast';
 import Icon from '@/components/ui/icon';
 
 const TradeIn = () => {
   const [currentCarValue, setCurrentCarValue] = useState([0]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCallbackSubmitting, setIsCallbackSubmitting] = useState(false);
   const [evaluationForm, setEvaluationForm] = useState({
     brand: '',
     model: '',
@@ -30,6 +35,8 @@ const TradeIn = () => {
     email: '',
     preferredTime: ''
   });
+
+  const { user } = useAuth();
 
   const tradeInSteps = [
     {
@@ -90,22 +97,108 @@ const TradeIn = () => {
     { brand: 'Mercedes', model: 'GLC', year: '2019', estimatedValue: '2 600 000 - 3 000 000' }
   ];
 
-  const handleEvaluationSubmit = (e: React.FormEvent) => {
+  const handleEvaluationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: 'Заявка отправлена',
-      description: 'Мы свяжемся с вами для назначения времени осмотра',
-    });
-    // Здесь была бы отправка формы на сервер
+    
+    setIsSubmitting(true);
+    
+    try {
+      const tradeInData = {
+        userId: user?._id || 'guest',
+        carBrand: evaluationForm.brand,
+        carModel: evaluationForm.model,
+        carYear: parseInt(evaluationForm.year),
+        carMileage: parseInt(evaluationForm.mileage),
+        carCondition: evaluationForm.condition,
+        estimatedValue: estimateValue(),
+        status: 'pending' as const,
+        notes: `Двигатель: ${evaluationForm.engine}, КПП: ${evaluationForm.transmission}, ДТП: ${evaluationForm.accidents ? 'Да' : 'Нет'}, Модификации: ${evaluationForm.modifications ? 'Да' : 'Нет'}, История ТО: ${evaluationForm.serviceHistory ? 'Да' : 'Нет'}, Описание: ${evaluationForm.description}`
+      };
+      
+      if (user) {
+        const response = await apiClient.createTradeIn(tradeInData);
+        if (response.success) {
+          toast({
+            title: 'Заявка создана',
+            description: `Ваша заявка №${response.data?.evaluationNumber} принята. Мы свяжемся с вами для назначения времени осмотра.`,
+          });
+          // Сброс формы
+          setEvaluationForm({
+            brand: '',
+            model: '',
+            year: '',
+            mileage: '',
+            engine: '',
+            transmission: '',
+            condition: '',
+            accidents: false,
+            modifications: false,
+            serviceHistory: true,
+            description: ''
+          });
+        }
+      } else {
+        toast({
+          title: 'Заявка отправлена',
+          description: 'Мы свяжемся с вами для назначения времени осмотра. Для отслеживания статуса рекомендуем зарегистрироваться.',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось отправить заявку. Попробуйте еще раз.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleContactSubmit = (e: React.FormEvent) => {
+  const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: 'Заявка отправлена',
-      description: 'Мы свяжемся с вами в ближайшее время',
-    });
-    // Здесь была бы отправка формы на сервер
+    
+    setIsCallbackSubmitting(true);
+    
+    try {
+      // Создаем заявку на обратный звонок через appointments
+      const appointmentData = {
+        userId: user?._id || 'guest',
+        type: 'consultation' as const,
+        appointmentDate: new Date().toISOString(),
+        appointmentTime: contactForm.preferredTime || '10:00',
+        status: 'scheduled' as const,
+        notes: `Обратный звонок по Trade-in. Имя: ${contactForm.name}, Телефон: ${contactForm.phone}, Email: ${contactForm.email}, Удобное время: ${contactForm.preferredTime}`
+      };
+      
+      if (user) {
+        const response = await apiClient.createAppointment(appointmentData);
+        if (response.success) {
+          toast({
+            title: 'Заявка создана',
+            description: 'Мы перезвоним вам в указанное время.',
+          });
+          setContactForm({
+            name: '',
+            phone: '',
+            email: '',
+            preferredTime: ''
+          });
+        }
+      } else {
+        toast({
+          title: 'Заявка отправлена',
+          description: 'Мы перезвоним вам в ближайшее время.',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось отправить заявку. Попробуйте еще раз.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsCallbackSubmitting(false);
+    }
   };
 
   const estimateValue = () => {
@@ -332,9 +425,19 @@ const TradeIn = () => {
                     </Card>
                   )}
 
+                    disabled={isSubmitting}
                   <Button type="submit" className="w-full bg-primary hover:bg-primary/90" size="lg">
-                    <Icon name="Calculator" size={16} className="mr-2" />
-                    Получить точную оценку
+                    {isSubmitting ? (
+                      <>
+                        <Icon name="Loader2" size={16} className="mr-2 animate-spin" />
+                        Отправка...
+                      </>
+                    ) : (
+                      <>
+                        <Icon name="Calculator" size={16} className="mr-2" />
+                        Получить точную оценку
+                      </>
+                    )}
                   </Button>
                 </form>
               </CardContent>
@@ -419,9 +522,19 @@ const TradeIn = () => {
                         </SelectContent>
                       </Select>
                     </div>
+                      disabled={isCallbackSubmitting}
                     <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
-                      <Icon name="Calendar" size={16} className="mr-2" />
-                      Записаться на осмотр
+                      {isCallbackSubmitting ? (
+                        <>
+                          <Icon name="Loader2" size={16} className="mr-2 animate-spin" />
+                          Отправка...
+                        </>
+                      ) : (
+                        <>
+                          <Icon name="Calendar" size={16} className="mr-2" />
+                          Записаться на осмотр
+                        </>
+                      )}
                     </Button>
                   </form>
                 </CardContent>

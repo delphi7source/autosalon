@@ -386,6 +386,27 @@ class ApiClient {
       method: 'DELETE',
     });
   }
+
+  // Statistics and additional methods
+  async getCarStatistics(): Promise<ApiResponse<any>> {
+    return this.request('/cars/statistics');
+  }
+
+  async getOrderStatistics(): Promise<ApiResponse<any>> {
+    return this.request('/orders/statistics');
+  }
+
+  async getAvailableCars(): Promise<ApiResponse<Car[]>> {
+    return this.request('/cars/available');
+  }
+
+  async getActiveServices(): Promise<ApiResponse<Service[]>> {
+    return this.request('/services/active');
+  }
+
+  async getUpcomingAppointments(): Promise<ApiResponse<Appointment[]>> {
+    return this.request('/appointments/upcoming');
+  }
 }
 
 export const apiClient = new ApiClient(API_BASE_URL);

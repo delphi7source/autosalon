@@ -5,42 +5,47 @@ import { validateAppointmentData } from '../middleware/validation.js';
 
 const router = express.Router();
 
-// Все маршруты требуют аутентификации
-router.use(authenticateToken);
+// Публичные маршруты с опциональной аутентификацией
+router.post('/', optionalAuth, validateAppointmentData, AppointmentController.createAppointment);
 
+// Защищенные маршруты
 router.get('/', 
+  authenticateToken,
   authorizeRoles('admin', 'manager'), 
   AppointmentController.getAllAppointments
 );
 
 router.get('/upcoming', 
+  authenticateToken,
   authorizeRoles('admin', 'manager'), 
   AppointmentController.getUpcomingAppointments
 );
 
 router.get('/date/:date', 
+  authenticateToken,
   authorizeRoles('admin', 'manager'), 
   AppointmentController.getAppointmentsByDate
 );
 
 router.get('/type/:type', 
+  authenticateToken,
   authorizeRoles('admin', 'manager'), 
   AppointmentController.getAppointmentsByType
 );
 
-router.get('/user/:userId', AppointmentController.getAppointmentsByUserId);
+router.get('/user/:userId', authenticateToken, AppointmentController.getAppointmentsByUserId);
 
-router.get('/:id', AppointmentController.getAppointmentById);
+router.get('/:id', authenticateToken, AppointmentController.getAppointmentById);
 
-router.post('/', validateAppointmentData, AppointmentController.createAppointment);
 
-router.put('/:id', AppointmentController.updateAppointment);
+router.put('/:id', authenticateToken, AppointmentController.updateAppointment);
 
 router.put('/:id/status', 
+  authenticateToken,
   authorizeRoles('admin', 'manager'), 
   AppointmentController.updateAppointmentStatus
 );
 
-router.delete('/:id', AppointmentController.deleteAppointment);
+router.delete('/:id', authenticateToken, AppointmentController.deleteAppointment);
 
 export default router;

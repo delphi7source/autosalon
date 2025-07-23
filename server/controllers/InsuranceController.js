@@ -47,6 +47,12 @@ class InsuranceController {
   static async createInsurance(req, res) {
     try {
       const insuranceData = req.body;
+      
+      // Если пользователь не авторизован, создаем гостевую заявку
+      if (!req.user && insuranceData.userId === 'guest') {
+        insuranceData.userId = null;
+      }
+      
       const insurance = await Insurance.create(insuranceData);
       
       res.status(201).json({

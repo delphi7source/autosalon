@@ -47,6 +47,12 @@ class TradeInController {
   static async createTradeIn(req, res) {
     try {
       const tradeInData = req.body;
+      
+      // Если пользователь не авторизован, создаем гостевую заявку
+      if (!req.user && tradeInData.userId === 'guest') {
+        tradeInData.userId = null;
+      }
+      
       const tradeIn = await TradeIn.create(tradeInData);
       
       res.status(201).json({

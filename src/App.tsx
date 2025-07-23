@@ -20,6 +20,7 @@ import TradeIn from "./pages/TradeIn";
 import Contacts from "./pages/Contacts";
 import About from "./pages/About";
 import Warranty from "./pages/Warranty";
+import Profile from "./pages/Profile";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Unauthorized from "./pages/Unauthorized";
@@ -61,6 +62,7 @@ const App = () => (
               <Route path="/contacts" element={<Layout><Contacts /></Layout>} />
               <Route path="/about" element={<Layout><About /></Layout>} />
               <Route path="/warranty" element={<Layout><Warranty /></Layout>} />
+              <Route path="/profile" element={<Layout><Profile /></Layout>} />
               
               {/* Admin routes */}
               <Route path="/admin" element={

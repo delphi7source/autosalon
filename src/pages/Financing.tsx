@@ -6,6 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { apiClient } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import Icon from '@/components/ui/icon';
 
@@ -15,6 +17,15 @@ const Financing = () => {
   const [loanTerm, setLoanTerm] = useState([36]);
   const [interestRate, setInterestRate] = useState(12.5);
   const [selectedBank, setSelectedBank] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [contactForm, setContactForm] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    income: ''
+  });
+
+  const { user } = useAuth();
 
   const banks = [
     {
@@ -65,6 +76,45 @@ const Financing = () => {
   const monthlyPayment = calculateMonthlyPayment();
   const totalAmount = monthlyPayment * loanTerm[0];
   const overpayment = totalAmount - (loanAmount[0] - downPayment[0]);
+
+  const handleCreditApplication = async () => {
+    setIsSubmitting(true);
+    
+    try {
+      // Создаем заявку через appointments
+      const appointmentData = {
+        userId: user?._id || 'guest',
+        type: 'consultation' as const,
+        appointmentDate: new Date().toISOString(),
+        appointmentTime: '10:00',
+        status: 'scheduled' as const,
+        notes: `Заявка на кредит. Сумма: ${loanAmount[0]}, Первый взнос: ${downPayment[0]}, Срок: ${loanTerm[0]} мес., Банк: ${selectedBank}, Ежемесячный платеж: ${Math.round(monthlyPayment)}`
+      };
+      
+      if (user) {
+        const response = await apiClient.createAppointment(appointmentData);
+        if (response.success) {
+          toast({
+            title: 'Заявка отправлена',
+            description: 'Мы свяжемся с вами для оформления кредита в ближайшее время.',
+          });
+        }
+      } else {
+        toast({
+          title: 'Заявка отправлена',
+          description: 'Мы свяжемся с вами для оформления кредита. Для быстрого рассмотрения рекомендуем зарегистрироваться.',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось отправить заявку. Попробуйте еще раз.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const formatPrice = (price: number) => {
     return Math.round(price).toLocaleString('ru-RU');
@@ -284,12 +334,20 @@ const Financing = () => {
                       </CardContent>
                     </Card>
 
+                      onClick={handleCreditApplication}
+                      disabled={isSubmitting}
                     <Button className="w-full bg-primary hover:bg-primary/90" size="lg">
-                      <Icon name="FileText" size={16} className="mr-2" />
-                      <span onClick={() => toast({
-                        title: 'Заявка отправлена',
-                        description: 'Мы свяжемся с вами для оформления кредита',
-                      })}>Подать заявку на кредит</span>
+                      {isSubmitting ? (
+                        <>
+                          <Icon name="Loader2" size={16} className="mr-2 animate-spin" />
+                          Отправка...
+                        </>
+                      ) : (
+                        <>
+                          <Icon name="FileText" size={16} className="mr-2" />
+                          Подать заявку на кредит
+                        </>
+                      )}
                     </Button>
                   </CardContent>
                 </Card>

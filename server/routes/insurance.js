@@ -1,41 +1,47 @@
 import express from 'express';
 import InsuranceController from '../controllers/InsuranceController.js';
 import { authenticateToken, authorizeRoles } from '../middleware/auth.js';
+import { optionalAuth } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Все маршруты требуют аутентификации
-router.use(authenticateToken);
+// Публичные маршруты с опциональной аутентификацией
+router.post('/', optionalAuth, InsuranceController.createInsurance);
 
+// Защищенные маршруты
 router.get('/', 
+  authenticateToken,
   authorizeRoles('admin', 'manager'), 
   InsuranceController.getAllInsurance
 );
 
 router.get('/type/:type', 
+  authenticateToken,
   authorizeRoles('admin', 'manager'), 
   InsuranceController.getInsuranceByType
 );
 
 router.get('/status/:status', 
+  authenticateToken,
   authorizeRoles('admin', 'manager'), 
   InsuranceController.getInsuranceByStatus
 );
 
-router.get('/user/:userId', InsuranceController.getInsuranceByUserId);
+router.get('/user/:userId', authenticateToken, InsuranceController.getInsuranceByUserId);
 
-router.get('/:id', InsuranceController.getInsuranceById);
+router.get('/:id', authenticateToken, InsuranceController.getInsuranceById);
 
-router.post('/', InsuranceController.createInsurance);
 
-router.put('/:id', InsuranceController.updateInsurance);
+router.put('/:id', authenticateToken, InsuranceController.updateInsurance);
 
 router.put('/:id/status', 
+  authenticateToken,
   authorizeRoles('admin', 'manager'), 
   InsuranceController.updateInsuranceStatus
 );
 
 router.delete('/:id', 
+  authenticateToken,
   authorizeRoles('admin', 'manager'), 
   InsuranceController.deleteInsurance
 );

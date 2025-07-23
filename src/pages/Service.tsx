@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { apiClient, Service as ServiceType } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import Icon from '@/components/ui/icon';
 
@@ -15,6 +16,7 @@ const Service = () => {
   const [selectedService, setSelectedService] = useState('');
   const [services, setServices] = useState<ServiceType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [bookingForm, setBookingForm] = useState({
     name: '',
     phone: '',
@@ -25,6 +27,8 @@ const Service = () => {
     mileage: '',
     description: ''
   });
+
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchServices = async () => {
@@ -74,13 +78,57 @@ const Service = () => {
     }
   ];
 
-  const handleBookingSubmit = (e: React.FormEvent) => {
+  const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: 'Заявка отправлена',
-      description: 'Мы свяжемся с вами в ближайшее время',
-    });
-    // Здесь была бы отправка формы на сервер
+    
+    setIsSubmitting(true);
+    
+    try {
+      const selectedServiceData = services.find(service => service.name === selectedService);
+      
+      const appointmentData = {
+        userId: user?._id || 'guest',
+        type: 'service' as const,
+        appointmentDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Завтра
+        appointmentTime: '10:00',
+        serviceId: selectedServiceData?._id,
+        status: 'scheduled' as const,
+        notes: `Имя: ${bookingForm.name}, Телефон: ${bookingForm.phone}, Email: ${bookingForm.email}, Автомобиль: ${bookingForm.carModel} ${bookingForm.year}, VIN: ${bookingForm.vin}, Пробег: ${bookingForm.mileage}, Описание: ${bookingForm.description}`
+      };
+      
+      if (user) {
+        const response = await apiClient.createAppointment(appointmentData);
+        if (response.success) {
+          toast({
+            title: 'Запись создана',
+            description: 'Вы успешно записались на сервис. Мы свяжемся с вами для уточнения времени.',
+          });
+          setBookingForm({
+            name: '',
+            phone: '',
+            email: '',
+            carModel: '',
+            year: '',
+            vin: '',
+            mileage: '',
+            description: ''
+          });
+        }
+      } else {
+        toast({
+          title: 'Заявка отправлена',
+          description: 'Мы свяжемся с вами в ближайшее время. Для отслеживания записи рекомендуем зарегистрироваться.',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось отправить заявку. Попробуйте еще раз.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Группируем услуги по категориям
@@ -175,8 +223,16 @@ const Service = () => {
         />
       </div>
 
+        disabled={isSubmitting}
       <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
-        Записаться на сервис
+        {isSubmitting ? (
+          <>
+            <Icon name="Loader2" size={16} className="mr-2 animate-spin" />
+            Отправка...
+          </>
+        ) : (
+          'Записаться на сервис'
+        )}
       </Button>
     </form>
   );

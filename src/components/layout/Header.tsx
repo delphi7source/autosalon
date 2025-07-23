@@ -87,6 +87,14 @@ const Header = () => {
                       <Icon name="ShoppingCart" size={16} className="mr-2" />
                       Мои заказы
                     </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <Icon name="Calendar" size={16} className="mr-2" />
+                      Мои записи
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <Icon name="ShoppingCart" size={16} className="mr-2" />
+                      Мои заказы
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={logout}>
                       <Icon name="LogOut" size={16} className="mr-2" />
@@ -162,6 +170,12 @@ const Header = () => {
                             </Button>
                           </Link>
                         )}
+                        <Link to="/profile" onClick={() => setIsOpen(false)}>
+                          <Button variant="outline" className="w-full">
+                            <Icon name="User" size={16} className="mr-2" />
+                            Мой профиль
+                          </Button>
+                        </Link>
                         <Button onClick={() => { logout(); setIsOpen(false); }} variant="outline" className="w-full">
                           <Icon name="LogOut" size={16} className="mr-2" />
                           Выйти

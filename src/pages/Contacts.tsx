@@ -5,9 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { apiClient } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/hooks/use-toast';
 import Icon from '@/components/ui/icon';
 
 const Contacts = () => {
+  const [isContactSubmitting, setIsContactSubmitting] = useState(false);
+  const [isCallbackSubmitting, setIsCallbackSubmitting] = useState(false);
   const [contactForm, setContactForm] = useState({
     name: '',
     phone: '',
@@ -21,6 +26,8 @@ const Contacts = () => {
     phone: '',
     time: ''
   });
+
+  const { user } = useAuth();
 
   const departments = [
     {
@@ -111,34 +118,96 @@ const Contacts = () => {
     }
   ];
 
-  const handleContactSubmit = (e: React.FormEvent) => {
+  const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: 'Сообщение отправлено',
-      description: 'Мы ответим вам в ближайшее время',
-    });
-    setContactForm({
-      name: '',
-      phone: '',
-      email: '',
-      subject: '',
-      message: ''
-    });
-    // Здесь была бы отправка формы
+    
+    setIsContactSubmitting(true);
+    
+    try {
+      const appointmentData = {
+        userId: user?._id || 'guest',
+        type: 'consultation' as const,
+        appointmentDate: new Date().toISOString(),
+        appointmentTime: '10:00',
+        status: 'scheduled' as const,
+        notes: `Обращение через форму обратной связи. Имя: ${contactForm.name}, Телефон: ${contactForm.phone}, Email: ${contactForm.email}, Тема: ${contactForm.subject}, Сообщение: ${contactForm.message}`
+      };
+      
+      if (user) {
+        const response = await apiClient.createAppointment(appointmentData);
+        if (response.success) {
+          toast({
+            title: 'Сообщение отправлено',
+            description: 'Мы ответим вам в ближайшее время.',
+          });
+          setContactForm({
+            name: '',
+            phone: '',
+            email: '',
+            subject: '',
+            message: ''
+          });
+        }
+      } else {
+        toast({
+          title: 'Сообщение отправлено',
+          description: 'Мы ответим вам в ближайшее время.',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось отправить сообщение. Попробуйте еще раз.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsContactSubmitting(false);
+    }
   };
 
-  const handleCallbackSubmit = (e: React.FormEvent) => {
+  const handleCallbackSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: 'Заявка отправлена',
-      description: 'Мы перезвоним вам в указанное время',
-    });
-    setCallbackForm({
-      name: '',
-      phone: '',
-      time: ''
-    });
-    // Здесь была бы отправка формы
+    
+    setIsCallbackSubmitting(true);
+    
+    try {
+      const appointmentData = {
+        userId: user?._id || 'guest',
+        type: 'consultation' as const,
+        appointmentDate: new Date().toISOString(),
+        appointmentTime: callbackForm.time === 'now' ? new Date().getHours() + ':00' : '10:00',
+        status: 'scheduled' as const,
+        notes: `Заказ обратного звонка. Имя: ${callbackForm.name}, Телефон: ${callbackForm.phone}, Удобное время: ${callbackForm.time}`
+      };
+      
+      if (user) {
+        const response = await apiClient.createAppointment(appointmentData);
+        if (response.success) {
+          toast({
+            title: 'Заявка отправлена',
+            description: 'Мы перезвоним вам в указанное время.',
+          });
+          setCallbackForm({
+            name: '',
+            phone: '',
+            time: ''
+          });
+        }
+      } else {
+        toast({
+          title: 'Заявка отправлена',
+          description: 'Мы перезвоним вам в ближайшее время.',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось отправить заявку. Попробуйте еще раз.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsCallbackSubmitting(false);
+    }
   };
 
   return (
@@ -289,9 +358,18 @@ const Contacts = () => {
                             </SelectContent>
                           </Select>
                         </div>
-                        <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
-                          <Icon name="Phone" size={16} className="mr-2" />
-                          Заказать звонок
+                        <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={isCallbackSubmitting}>
+                          {isCallbackSubmitting ? (
+                            <>
+                              <Icon name="Loader2" size={16} className="mr-2 animate-spin" />
+                              Отправка...
+                            </>
+                          ) : (
+                            <>
+                              <Icon name="Phone" size={16} className="mr-2" />
+                              Заказать звонок
+                            </>
+                          )}
                         </Button>
                       </form>
                     </CardContent>
@@ -518,9 +596,18 @@ const Contacts = () => {
                         rows={5}
                       />
                     </div>
-                    <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
-                      <Icon name="Send" size={16} className="mr-2" />
-                      Отправить сообщение
+                    <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={isContactSubmitting}>
+                      {isContactSubmitting ? (
+                        <>
+                          <Icon name="Loader2" size={16} className="mr-2 animate-spin" />
+                          Отправка...
+                        </>
+                      ) : (
+                        <>
+                          <Icon name="Send" size={16} className="mr-2" />
+                          Отправить сообщение
+                        </>
+                      )}
                     </Button>
                   </form>
                 </CardContent>

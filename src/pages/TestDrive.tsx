@@ -10,6 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { apiClient, Car } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import Icon from '@/components/ui/icon';
 
@@ -19,6 +20,7 @@ const TestDrive = () => {
   const [selectedCar, setSelectedCar] = useState('');
   const [availableCars, setAvailableCars] = useState<Car[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -26,6 +28,8 @@ const TestDrive = () => {
     experience: '',
     comments: ''
   });
+
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchCars = async () => {
@@ -53,13 +57,61 @@ const TestDrive = () => {
     '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: 'Заявка отправлена',
-      description: 'Мы свяжемся с вами для подтверждения записи',
-    });
-    // Здесь была бы отправка формы на сервер
+    
+    if (!isFormValid()) return;
+    
+    setIsSubmitting(true);
+    
+    try {
+      const selectedCarData = availableCars.find(car => `${car.brand} ${car.model}` === selectedCar);
+      
+      const appointmentData = {
+        userId: user?._id || 'guest',
+        type: 'test-drive' as const,
+        appointmentDate: selectedDate!.toISOString(),
+        appointmentTime: selectedTime,
+        carId: selectedCarData?._id,
+        status: 'scheduled' as const,
+        notes: `Имя: ${formData.name}, Телефон: ${formData.phone}, Email: ${formData.email}, Стаж: ${formData.experience}, Комментарии: ${formData.comments}`
+      };
+      
+      if (user) {
+        const response = await apiClient.createAppointment(appointmentData);
+        if (response.success) {
+          toast({
+            title: 'Запись создана',
+            description: 'Вы успешно записались на тест-драйв. Мы свяжемся с вами для подтверждения.',
+          });
+          // Сброс формы
+          setFormData({
+            name: '',
+            phone: '',
+            email: '',
+            experience: '',
+            comments: ''
+          });
+          setSelectedDate(undefined);
+          setSelectedTime('');
+          setSelectedCar('');
+        }
+      } else {
+        // Для неавторизованных пользователей просто показываем уведомление
+        toast({
+          title: 'Заявка отправлена',
+          description: 'Мы свяжемся с вами для подтверждения записи. Для полного функционала рекомендуем зарегистрироваться.',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось отправить заявку. Попробуйте еще раз.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const isFormValid = () => {
@@ -240,10 +292,19 @@ const TestDrive = () => {
                     type="submit" 
                     className="w-full bg-primary hover:bg-primary/90" 
                     size="lg"
-                    disabled={!isFormValid()}
+                    disabled={!isFormValid() || isSubmitting}
                   >
-                    <Icon name="Calendar" size={16} className="mr-2" />
-                    Записаться на тест-драйв
+                    {isSubmitting ? (
+                      <>
+                        <Icon name="Loader2" size={16} className="mr-2 animate-spin" />
+                        Отправка...
+                      </>
+                    ) : (
+                      <>
+                        <Icon name="Calendar" size={16} className="mr-2" />
+                        Записаться на тест-драйв
+                      </>
+                    )}
                   </Button>
                 </form>
               </CardContent>

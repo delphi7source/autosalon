@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { useAuth } from '@/contexts/AuthContext';
 import { apiClient, Car } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
 import Icon from '@/components/ui/icon';
@@ -17,6 +18,9 @@ const CarDetail = () => {
   const [selectedImage, setSelectedImage] = useState(0);
   const [car, setCar] = useState<Car | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isContactSubmitting, setIsContactSubmitting] = useState(false);
+
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchCar = async () => {
@@ -64,10 +68,51 @@ const CarDetail = () => {
       message: ''
     });
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
-      // Здесь была бы отправка формы
-      console.log('Form submitted:', formData);
+      
+      setIsContactSubmitting(true);
+      
+      try {
+        const appointmentData = {
+          userId: user?._id || 'guest',
+          type: 'consultation' as const,
+          appointmentDate: new Date().toISOString(),
+          appointmentTime: '10:00',
+          carId: car?._id,
+          status: 'scheduled' as const,
+          notes: `Интерес к автомобилю ${car?.brand} ${car?.model}. Имя: ${formData.name}, Телефон: ${formData.phone}, Email: ${formData.email}, Сообщение: ${formData.message}`
+        };
+        
+        if (user) {
+          const response = await apiClient.createAppointment(appointmentData);
+          if (response.success) {
+            toast({
+              title: 'Заявка отправлена',
+              description: 'Менеджер свяжется с вами в ближайшее время.',
+            });
+            setFormData({
+              name: '',
+              phone: '',
+              email: '',
+              message: ''
+            });
+          }
+        } else {
+          toast({
+            title: 'Заявка отправлена',
+            description: 'Менеджер свяжется с вами в ближайшее время.',
+          });
+        }
+      } catch (error) {
+        toast({
+          title: 'Ошибка',
+          description: 'Не удалось отправить заявку. Попробуйте еще раз.',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsContactSubmitting(false);
+      }
     };
 
     return (
@@ -109,8 +154,16 @@ const CarDetail = () => {
             rows={3}
           />
         </div>
+          disabled={isContactSubmitting}
         <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
-          Отправить заявку
+          {isContactSubmitting ? (
+            <>
+              <Icon name="Loader2" size={16} className="mr-2 animate-spin" />
+              Отправка...
+            </>
+          ) : (
+            'Отправить заявку'
+          )}
         </Button>
       </form>
     );

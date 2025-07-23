@@ -7,6 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Slider } from '@/components/ui/slider';
+import { apiClient } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/hooks/use-toast';
 import Icon from '@/components/ui/icon';
 
 const Insurance = () => {
@@ -15,6 +18,7 @@ const Insurance = () => {
   const [driverAge, setDriverAge] = useState([30]);
   const [driverExperience, setDriverExperience] = useState([5]);
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -23,6 +27,8 @@ const Insurance = () => {
     year: '',
     vin: ''
   });
+
+  const { user } = useAuth();
 
   const insuranceCompanies = [
     {
@@ -96,13 +102,54 @@ const Insurance = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: 'Заявка отправлена',
-      description: 'Мы подготовим для вас лучшие предложения по страхованию',
-    });
-    // Здесь была бы отправка формы на сервер
+    
+    setIsSubmitting(true);
+    
+    try {
+      const insuranceData = {
+        userId: user?._id || 'guest',
+        type: insuranceType as 'kasko' | 'osago',
+        insuranceCompany: 'AutoPremium Partner',
+        premium: insuranceType === 'kasko' ? calculateKaskoPrice() : calculateOsagoPrice(),
+        coverage: insuranceType === 'kasko' ? carValue[0] : 400000,
+        startDate: new Date().toISOString(),
+        endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+        status: 'active' as const
+      };
+      
+      if (user) {
+        const response = await apiClient.createInsurance(insuranceData);
+        if (response.success) {
+          toast({
+            title: 'Заявка создана',
+            description: `Ваша заявка на ${insuranceType === 'kasko' ? 'КАСКО' : 'ОСАГО'} принята. Полис №${response.data?.policyNumber}`,
+          });
+          setFormData({
+            name: '',
+            phone: '',
+            email: '',
+            carModel: '',
+            year: '',
+            vin: ''
+          });
+        }
+      } else {
+        toast({
+          title: 'Заявка отправлена',
+          description: 'Мы подготовим для вас лучшие предложения по страхованию. Для оформления полиса рекомендуем зарегистрироваться.',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось отправить заявку. Попробуйте еще раз.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const formatPrice = (price: number) => {
@@ -333,8 +380,16 @@ const Insurance = () => {
                           value={formData.carModel}
                           onChange={(e) => setFormData({...formData, carModel: e.target.value})}
                         />
+                          disabled={isSubmitting}
                         <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
-                          Получить предложения
+                          {isSubmitting ? (
+                            <>
+                              <Icon name="Loader2" size={16} className="mr-2 animate-spin" />
+                              Отправка...
+                            </>
+                          ) : (
+                            'Получить предложения'
+                          )}
                         </Button>
                       </form>
                     </CardContent>

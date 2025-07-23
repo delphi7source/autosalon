@@ -47,6 +47,12 @@ class AppointmentController {
   static async createAppointment(req, res) {
     try {
       const appointmentData = req.body;
+      
+      // Если пользователь не авторизован, создаем гостевую запись
+      if (!req.user && appointmentData.userId === 'guest') {
+        appointmentData.userId = null;
+      }
+      
       const appointment = await Appointment.create(appointmentData);
       
       res.status(201).json({
