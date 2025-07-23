@@ -71,6 +71,9 @@ const App = () => (
                 </ProtectedRoute>
               }>
                 <Route index element={<AdminDashboard />} />
+                <Route path="analytics" element={<AnalyticsPage />} />
+                <Route path="reports" element={<ReportsPage />} />
+                <Route path="notifications" element={<NotificationsPage />} />
                 <Route path="users" element={
                   <ProtectedRoute requiredPermission="users.read">
                     <UsersManagement />
@@ -86,6 +89,8 @@ const App = () => (
                     <ServicesManagement />
                   </ProtectedRoute>
                 } />
+                <Route path="categories" element={<CategoriesManagement />} />
+                <Route path="brands" element={<BrandsManagement />} />
                 <Route path="orders" element={
                   <ProtectedRoute requiredPermission="orders.read">
                     <OrdersManagement />
@@ -106,6 +111,20 @@ const App = () => (
                     <InsuranceManagement />
                   </ProtectedRoute>
                 } />
+                <Route path="payments" element={<PaymentsManagement />} />
+                <Route path="invoices" element={<InvoicesManagement />} />
+                <Route path="promotions" element={<PromotionsManagement />} />
+                <Route path="news" element={<NewsManagement />} />
+                <Route path="reviews" element={<ReviewsManagement />} />
+                <Route path="newsletters" element={<NewslettersManagement />} />
+                <Route path="pages" element={<PagesManagement />} />
+                <Route path="media" element={<MediaManagement />} />
+                <Route path="faq" element={<FaqManagement />} />
+                <Route path="banners" element={<BannersManagement />} />
+                <Route path="settings" element={<SettingsPage />} />
+                <Route path="logs" element={<LogsPage />} />
+                <Route path="backups" element={<BackupsPage />} />
+                <Route path="security" element={<SecurityPage />} />
               </Route>
               
               {/* Catch all */}

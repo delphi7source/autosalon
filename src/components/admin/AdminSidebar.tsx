@@ -34,6 +34,18 @@ const AdminSidebar: React.FC = () => {
           url: '/admin/analytics',
           icon: 'BarChart3',
           permission: 'admin.access'
+        },
+        {
+          title: 'Отчеты',
+          url: '/admin/reports',
+          icon: 'FileText',
+          permission: 'admin.access'
+        },
+        {
+          title: 'Уведомления',
+          url: '/admin/notifications',
+          icon: 'Bell',
+          permission: 'admin.access'
         }
       ]
     },
@@ -57,6 +69,18 @@ const AdminSidebar: React.FC = () => {
           url: '/admin/services',
           icon: 'Wrench',
           permission: 'services.read'
+        },
+        {
+          title: 'Категории',
+          url: '/admin/categories',
+          icon: 'Folder',
+          permission: 'admin.access'
+        },
+        {
+          title: 'Бренды',
+          url: '/admin/brands',
+          icon: 'Tag',
+          permission: 'admin.access'
         }
       ]
     },
@@ -86,6 +110,105 @@ const AdminSidebar: React.FC = () => {
           url: '/admin/insurance',
           icon: 'Shield',
           permission: 'insurance.read'
+        },
+        {
+          title: 'Платежи',
+          url: '/admin/payments',
+          icon: 'CreditCard',
+          permission: 'admin.access'
+        },
+        {
+          title: 'Счета',
+          url: '/admin/invoices',
+          icon: 'Receipt',
+          permission: 'admin.access'
+        }
+      ]
+    },
+    {
+      title: 'Маркетинг',
+      items: [
+        {
+          title: 'Акции',
+          url: '/admin/promotions',
+          icon: 'Percent',
+          permission: 'admin.access'
+        },
+        {
+          title: 'Новости',
+          url: '/admin/news',
+          icon: 'Newspaper',
+          permission: 'admin.access'
+        },
+        {
+          title: 'Отзывы',
+          url: '/admin/reviews',
+          icon: 'Star',
+          permission: 'admin.access'
+        },
+        {
+          title: 'Email рассылки',
+          url: '/admin/newsletters',
+          icon: 'Mail',
+          permission: 'admin.access'
+        }
+      ]
+    },
+    {
+      title: 'Контент',
+      items: [
+        {
+          title: 'Страницы',
+          url: '/admin/pages',
+          icon: 'FileText',
+          permission: 'admin.access'
+        },
+        {
+          title: 'Медиа файлы',
+          url: '/admin/media',
+          icon: 'Image',
+          permission: 'admin.access'
+        },
+        {
+          title: 'FAQ',
+          url: '/admin/faq',
+          icon: 'HelpCircle',
+          permission: 'admin.access'
+        },
+        {
+          title: 'Баннеры',
+          url: '/admin/banners',
+          icon: 'Layout',
+          permission: 'admin.access'
+        }
+      ]
+    },
+    {
+      title: 'Система',
+      items: [
+        {
+          title: 'Настройки',
+          url: '/admin/settings',
+          icon: 'Settings',
+          permission: 'admin.access'
+        },
+        {
+          title: 'Логи',
+          url: '/admin/logs',
+          icon: 'FileText',
+          permission: 'admin.access'
+        },
+        {
+          title: 'Резервные копии',
+          url: '/admin/backups',
+          icon: 'Database',
+          permission: 'admin.access'
+        },
+        {
+          title: 'Безопасность',
+          url: '/admin/security',
+          icon: 'Lock',
+          permission: 'admin.access'
         }
       ]
     }
