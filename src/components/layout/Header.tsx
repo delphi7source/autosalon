@@ -2,11 +2,14 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { useAuth } from '@/contexts/AuthContext';
 import Icon from '@/components/ui/icon';
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const { isAuthenticated, user, logout, hasPermission } = useAuth();
 
   const navigation = [
     { name: 'Главная', href: '/' },
@@ -57,12 +60,57 @@ const Header = () => {
               <div className="text-sm font-medium">+7 (495) 123-45-67</div>
               <div className="text-xs text-gray-500">Ежедневно 9:00-21:00</div>
             </div>
-            <Link to="/contacts">
-              <Button className="bg-primary hover:bg-primary/90">
-                <Icon name="Phone" size={16} className="mr-2" />
-                Связаться
-              </Button>
-            </Link>
+            
+            {isAuthenticated ? (
+              <div className="flex items-center space-x-2">
+                {hasPermission('admin.access') && (
+                  <Link to="/admin">
+                    <Button variant="outline" size="sm">
+                      <Icon name="Settings" size={16} className="mr-2" />
+                      Админ
+                    </Button>
+                  </Link>
+                )}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm">
+                      <Icon name="User" size={16} className="mr-2" />
+                      {user?.firstName}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem>
+                      <Icon name="User" size={16} className="mr-2" />
+                      Профиль
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <Icon name="ShoppingCart" size={16} className="mr-2" />
+                      Мои заказы
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={logout}>
+                      <Icon name="LogOut" size={16} className="mr-2" />
+                      Выйти
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-2">
+                <Link to="/login">
+                  <Button variant="outline" size="sm">
+                    <Icon name="LogIn" size={16} className="mr-2" />
+                    Войти
+                  </Button>
+                </Link>
+                <Link to="/contacts">
+                  <Button className="bg-primary hover:bg-primary/90" size="sm">
+                    <Icon name="Phone" size={16} className="mr-2" />
+                    Связаться
+                  </Button>
+                </Link>
+              </div>
+            )}
           </div>
 
           {/* Mobile Menu */}
@@ -100,16 +148,45 @@ const Header = () => {
 
                 <div className="border-t pt-6 mt-6">
                   <div className="space-y-4">
-                    <div className="text-center">
-                      <div className="font-medium">+7 (495) 123-45-67</div>
-                      <div className="text-sm text-gray-500">Ежедневно 9:00-21:00</div>
-                    </div>
-                    <Link to="/contacts" onClick={() => setIsOpen(false)}>
-                      <Button className="w-full bg-primary hover:bg-primary/90">
-                        <Icon name="Phone" size={16} className="mr-2" />
-                        Связаться
-                      </Button>
-                    </Link>
+                    {isAuthenticated ? (
+                      <div className="space-y-2">
+                        <div className="text-center">
+                          <div className="font-medium">{user?.firstName} {user?.lastName}</div>
+                          <div className="text-sm text-gray-500">{user?.email}</div>
+                        </div>
+                        {hasPermission('admin.access') && (
+                          <Link to="/admin" onClick={() => setIsOpen(false)}>
+                            <Button variant="outline" className="w-full">
+                              <Icon name="Settings" size={16} className="mr-2" />
+                              Админ-панель
+                            </Button>
+                          </Link>
+                        )}
+                        <Button onClick={() => { logout(); setIsOpen(false); }} variant="outline" className="w-full">
+                          <Icon name="LogOut" size={16} className="mr-2" />
+                          Выйти
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="text-center">
+                          <div className="font-medium">+7 (495) 123-45-67</div>
+                          <div className="text-sm text-gray-500">Ежедневно 9:00-21:00</div>
+                        </div>
+                        <Link to="/login" onClick={() => setIsOpen(false)}>
+                          <Button variant="outline" className="w-full">
+                            <Icon name="LogIn" size={16} className="mr-2" />
+                            Войти
+                          </Button>
+                        </Link>
+                        <Link to="/contacts" onClick={() => setIsOpen(false)}>
+                          <Button className="w-full bg-primary hover:bg-primary/90">
+                            <Icon name="Phone" size={16} className="mr-2" />
+                            Связаться
+                          </Button>
+                        </Link>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
